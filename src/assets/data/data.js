@@ -69,7 +69,15 @@ export const data = {
         }
     ],
     audio: './src/assets/audio/wedding.mp3',
-    api: 'https://script.google.com/macros/s/AKfycbxnhSAPiWjVyz1sGGVlguAPZLGAzbcekgUwnqq5_ZrBGFbA3zOI41nsgrDwN1STwwzp/exec',
+    api: 'https://script.google.com/macros/s/AKfycbzI3cF8ylcsiLfr8kG-TEF1q11foU0essVmXdihgC9_UI1ywhaRpQrM5atJtCboqqw/exec',
+    livePhotoApi: 'GANTI_DENGAN_URL_WEB_APP_APPS_SCRIPT_LIVE_PHOTO_ANDA',
+    livePhotoConfig: {
+        maxWidth: 1280,
+        maxHeight: 1280,
+        mimeType: 'image/png',
+        quality: 0.85,
+        defaultFacingMode: 'environment'
+    },
     navbar: [
         { id: 1, teks: 'Home', icon: 'bx bxs-home-heart', path: '#home' },
         { id: 2, teks: 'Mempelai', icon: 'bx bxs-group', path: '#bride' },
