@@ -54,6 +54,15 @@ export const data = {
         { id: 4, image: './src/assets/images/4.png' },
         { id: 5, image: './src/assets/images/5.png' }
     ],
+    // Konfigurasi Live Photo Sharing ke Google Drive & Google Sheets via Apps Script Web App
+    livePhoto: {
+        enabled: true,
+        apiUrl: 'https://script.google.com/macros/s/AKfycbzI3cF8ylcsiLfr8kG-TEF1q11foU0essVmXdihgC9_UI1ywhaRpQrM5atJtCboqqw/exec',
+        driveFolderUrl: 'https://drive.google.com/drive/folders/10VPVOU3KRLyrHAyxUUFLO67C68ICidWm',
+        maxWidth: 1280,
+        maxHeight: 1280,
+        jpegQuality: 0.78
+    },
     bank: [
         {
             id: 1,
@@ -70,14 +79,6 @@ export const data = {
     ],
     audio: './src/assets/audio/wedding.mp3',
     api: 'https://script.google.com/macros/s/AKfycbzI3cF8ylcsiLfr8kG-TEF1q11foU0essVmXdihgC9_UI1ywhaRpQrM5atJtCboqqw/exec',
-    livePhotoApi: 'https://script.google.com/macros/s/AKfycbyKnF8TxYemh5VbGelvyhllymgdDgCAooiKSmt8UpUz7xdeT8t9UZDRm5VG5FHJyFvo/exec',
-    livePhotoConfig: {
-        maxWidth: 1280,
-        maxHeight: 1280,
-        mimeType: 'image/png',
-        quality: 0.85,
-        defaultFacingMode: 'environment'
-    },
     navbar: [
         { id: 1, teks: 'Home', icon: 'bx bxs-home-heart', path: '#home' },
         { id: 2, teks: 'Mempelai', icon: 'bx bxs-group', path: '#bride' },
