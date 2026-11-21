@@ -69,7 +69,7 @@ export const data = {
         }
     ],
     audio: './src/assets/audio/wedding.mp3',
-    api: 'https://script.google.com/macros/s/AKfycbw2eNKW-YkKuaokEKcaq0LRZJadUEpdbBEyS1ouBsm7y0o1L9goOa2Dywb5kV4prWbG/exec',
+    api: 'https://script.google.com/macros/s/AKfycbxnhSAPiWjVyz1sGGVlguAPZLGAzbcekgUwnqq5_ZrBGFbA3zOI41nsgrDwN1STwwzp/exec',
     navbar: [
         { id: 1, teks: 'Home', icon: 'bx bxs-home-heart', path: '#home' },
         { id: 2, teks: 'Mempelai', icon: 'bx bxs-group', path: '#bride' },
