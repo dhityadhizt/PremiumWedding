@@ -70,7 +70,7 @@ export const data = {
     ],
     audio: './src/assets/audio/wedding.mp3',
     api: 'https://script.google.com/macros/s/AKfycbzI3cF8ylcsiLfr8kG-TEF1q11foU0essVmXdihgC9_UI1ywhaRpQrM5atJtCboqqw/exec',
-    livePhotoApi: 'GANTI_DENGAN_URL_WEB_APP_APPS_SCRIPT_LIVE_PHOTO_ANDA',
+    livePhotoApi: 'https://script.google.com/macros/s/AKfycbyKnF8TxYemh5VbGelvyhllymgdDgCAooiKSmt8UpUz7xdeT8t9UZDRm5VG5FHJyFvo/exec',
     livePhotoConfig: {
         maxWidth: 1280,
         maxHeight: 1280,
