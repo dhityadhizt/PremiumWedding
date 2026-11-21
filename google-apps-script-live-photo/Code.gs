@@ -1,107 +1,123 @@
-// =========================================================================
-// GOOGLE APPS SCRIPT - LIVE PHOTO SHARING (SPREADSHEET + GOOGLE DRIVE)
-// Folder Drive Tujuan: https://drive.google.com/drive/folders/10VPVOU3KRLyrHAyxUUFLO67C68ICidWm
-// =========================================================================
-
+const SHEET_COMENTAR = 'comentar';
+const SHEET_PHOTOS = 'photos';
 const DRIVE_FOLDER_ID = '10VPVOU3KRLyrHAyxUUFLO67C68ICidWm';
-const SHEET_NAME = 'live_photos';
 
-function getOrCreateSheet_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_NAME);
+function jsonResponse(payload) {
+  return ContentService
+    .createTextOutput(JSON.stringify(payload))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function getOrCreatePhotoSheet(ss) {
+  let sheet = ss.getSheetByName(SHEET_PHOTOS);
   if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow(['id', 'guestName', 'facingMode', 'caption', 'date', 'fileId', 'fileName', 'imageUrl']);
+    sheet = ss.insertSheet(SHEET_PHOTOS);
+    sheet.appendRow(['id', 'sender', 'caption', 'cameraMode', 'createdAt', 'fileId', 'imageUrl', 'driveUrl']);
   }
   return sheet;
 }
 
 function doGet(e) {
   try {
-    const action = (e && e.parameter && e.parameter.action) || 'photos';
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const action = (e && e.parameter && e.parameter.action) ? String(e.parameter.action) : 'comentar';
+
     if (action === 'photos') {
-      const sheet = getOrCreateSheet_();
-      const lastRow = sheet.getLastRow();
-      if (lastRow <= 1) {
-        return ContentService
-          .createTextOutput(JSON.stringify({ status: 200, photos: [] }))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
+      const photoSheet = getOrCreatePhotoSheet(ss);
+      const rows = photoSheet.getDataRange().getValues();
+      const [, ...dataRows] = rows;
 
-      const rows = sheet.getRange(2, 1, lastRow - 1, 8).getValues();
-      const photos = rows
-        .filter(r => r[0] || r[7])
-        .map(r => ({
-          id: String(r[0] || ''),
-          guestName: String(r[1] || 'Tamu Undangan'),
-          facingMode: String(r[2] || 'environment'),
-          caption: String(r[3] || ''),
-          date: String(r[4] || ''),
-          fileId: String(r[5] || ''),
-          fileName: String(r[6] || ''),
-          imageUrl: String(r[7] || '')
-        }))
-        .reverse();
+      const photos = dataRows
+        .filter(r => r[6] || r[7])
+        .map(([id, sender, caption, cameraMode, createdAt, fileId, imageUrl, driveUrl]) => ({
+          id,
+          sender,
+          caption,
+          cameraMode,
+          createdAt,
+          fileId,
+          imageUrl: imageUrl || driveUrl,
+          driveUrl: driveUrl || imageUrl
+        }));
 
-      return ContentService
-        .createTextOutput(JSON.stringify({ status: 200, photos: photos }))
-        .setMimeType(ContentService.MimeType.JSON);
+      return jsonResponse({
+        status: 200,
+        message: 'Berhasil mengambil foto galeri',
+        photos
+      });
     }
 
-    return ContentService
-      .createTextOutput(JSON.stringify({ status: 200, message: 'Live Photo API Ready' }))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ status: 500, error: String(err) }))
-      .setMimeType(ContentService.MimeType.JSON);
+    const sheet = ss.getSheetByName(SHEET_COMENTAR);
+    const [, ...data] = sheet.getDataRange().getValues();
+
+    const comentar = data.map(([id, name, status, message, date, color]) => ({
+      id,
+      name,
+      status,
+      message,
+      date,
+      color
+    }));
+
+    return jsonResponse({
+      status: 200,
+      message: 'Berhasil mengambil data',
+      comentar
+    });
+  } catch (error) {
+    return jsonResponse({ status: 500, message: 'Kesalahan: ' + error });
   }
 }
 
 function doPost(e) {
   try {
-    const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
-    const id = body.id || ('live_' + new Date().getTime());
-    const guestName = String(body.guestName || 'Tamu Undangan').trim();
-    const facingMode = String(body.facingMode || 'environment').trim();
-    const caption = String(body.caption || '').trim();
-    const date = String(body.date || new Date().toISOString()).trim();
-    const mimeType = 'image/png';
-    const base64Data = String(body.imageBase64 || '').replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '');
+    const body = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    if (!base64Data) {
-      throw new Error('imageBase64 kosong');
+    if (body.type === 'live_photo' || body.action === 'upload_photo') {
+      const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+      const mimeType = body.mimeType || 'image/jpeg';
+      const fileName = body.fileName || ('live-photo-' + Date.now() + '.jpg');
+      const bytes = Utilities.base64Decode(body.imageBase64);
+      const blob = Utilities.newBlob(bytes, mimeType, fileName);
+
+      const file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+      const fileId = file.getId();
+      const driveUrl = file.getUrl();
+      const imageUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1280';
+
+      const photoSheet = getOrCreatePhotoSheet(ss);
+      photoSheet.appendRow([
+        body.id || ('photo-' + Date.now()),
+        body.sender || 'Tamu Undangan',
+        body.caption || '',
+        body.cameraMode || 'live',
+        body.createdAt || new Date().toISOString(),
+        fileId,
+        imageUrl,
+        driveUrl
+      ]);
+
+      return jsonResponse({
+        status: 200,
+        message: 'Foto berhasil disimpan ke Google Drive & Spreadsheet',
+        fileId,
+        imageUrl,
+        driveUrl
+      });
     }
 
-    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-    const safeGuest = guestName.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 25) || 'Tamu';
-    const fileName = `LivePhoto_${safeGuest}_${id}.png`;
+    const { id, name, status, message, date, color } = body;
+    const sheet = ss.getSheetByName(SHEET_COMENTAR);
+    if (!sheet) {
+      throw new Error('Sheet "' + SHEET_COMENTAR + '" tidak ditemukan');
+    }
 
-    const decodedBytes = Utilities.base64Decode(base64Data);
-    const blob = Utilities.newBlob(decodedBytes, mimeType, fileName);
-    const file = folder.createFile(blob);
-
-    // Izinkan akses lihat agar gambar dapat tampil di galeri undangan GitHub Pages
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-
-    const fileId = file.getId();
-    const imageUrl = `https://lh3.googleusercontent.com/d/${fileId}=w1000`;
-
-    const sheet = getOrCreateSheet_();
-    sheet.appendRow([id, guestName, facingMode, caption, date, fileId, fileName, imageUrl]);
-
-    return ContentService
-      .createTextOutput(JSON.stringify({
-        status: 200,
-        id: id,
-        fileId: fileId,
-        fileName: fileName,
-        imageUrl: imageUrl
-      }))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ status: 500, error: String(err) }))
-      .setMimeType(ContentService.MimeType.JSON);
+    sheet.appendRow([id, name, status, message, date, color]);
+    return jsonResponse({ status: 200, message: 'Data berhasil ditambahkan' });
+  } catch (error) {
+    return jsonResponse({ status: 500, message: 'Kesalahan: ' + error });
   }
 }
