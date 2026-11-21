@@ -16,7 +16,6 @@ export const galeri = () => {
     const showAllBox = showAllContainer.querySelector('div');
     const closeButton = showAllContainer.querySelector('button[aria-label="close button"]');
 
-    // Camera Modal Elements
     const cameraModal = document.getElementById('live-camera-modal');
     const closeCameraBtn = document.getElementById('close-camera-modal');
     const guestNameInput = document.getElementById('camera-guest-name');
@@ -34,22 +33,25 @@ export const galeri = () => {
     const retakePhotoBtn = document.getElementById('retake-photo-btn');
     const uploadPhotoBtn = document.getElementById('upload-photo-btn');
 
-    // State galeri gabungan (foto live tamu + foto bawaan)
     let galleryItems = [...data.galeri];
     let currentIndex = 0;
     let autoPlayTimer = null;
 
-    // State kamera
     let currentStream = null;
-    let facingMode = 'environment'; // default kamera belakang ('user' untuk depan)
+    let facingMode = 'environment';
     let capturedPngDataUrl = null;
 
-    // Pre-fill nama tamu dari parameter URL (?to=Nama+Tamu) jika ada
     const urlParams = new URLSearchParams(window.location.search);
     const toParam = urlParams.get('to');
     if (toParam && guestNameInput) {
         guestNameInput.value = toParam;
     }
+
+    const escapeHtml = (str) => {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    };
 
     const renderCarousel = () => {
         if (galleryItems.length === 0) return;
@@ -78,12 +80,6 @@ export const galeri = () => {
             });
             paginationElement.appendChild(li);
         });
-    };
-
-    const escapeHtml = (str) => {
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
     };
 
     const nextSlide = () => {
@@ -126,18 +122,15 @@ export const galeri = () => {
         showAllContainer.classList.remove('active');
     });
 
-    // --- Sinkronisasi Foto dari Google Drive / Spreadsheet ---
     const loadRemotePhotos = async () => {
         const remotePhotos = await galleryService.getPhotos();
         if (remotePhotos && remotePhotos.length > 0) {
-            // Gabungkan foto live dari tamu di urutan paling depan, diikuti foto bawaan
             galleryItems = [...remotePhotos, ...data.galeri];
             currentIndex = 0;
             renderCarousel();
         }
     };
 
-    // --- Fitur Kamera Langsung (WebRTC getUserMedia + PNG Export) ---
     const stopCameraStream = () => {
         if (currentStream) {
             currentStream.getTracks().forEach(track => track.stop());
@@ -155,7 +148,6 @@ export const galeri = () => {
         previewControls.style.display = 'none';
         loadingOverlay.style.display = 'none';
 
-        // Mirror tampilan video hanya jika menggunakan kamera depan ('user')
         videoStreamEl.style.transform = facingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
 
         try {
@@ -170,8 +162,7 @@ export const galeri = () => {
             currentStream = await navigator.mediaDevices.getUserMedia(constraints);
             videoStreamEl.srcObject = currentStream;
         } catch (err) {
-            console.warn('Akses WebRTC kamera gagal/ditolak, gunakan tombol Kamera HP:', err);
-            alert('Kamera browser tidak dapat diakses langsung (pastikan izin kamera aktif & menggunakan HTTPS). Silakan gunakan tombol "Kamera HP" di kanan bawah.');
+            console.warn('Akses WebRTC kamera gagal/ditolak:', err);
         }
     };
 
@@ -192,7 +183,6 @@ export const galeri = () => {
         startCameraStream();
     });
 
-    // Jepret foto dari live stream -> konversi ke PNG berkualitas penuh
     capturePhotoBtn.addEventListener('click', () => {
         if (!currentStream) return;
 
@@ -209,7 +199,6 @@ export const galeri = () => {
         }
         ctx.drawImage(videoStreamEl, 0, 0, videoWidth, videoHeight);
 
-        // Export sebagai PNG lossless
         capturedPngDataUrl = canvasEl.toDataURL('image/png');
 
         previewImgEl.src = capturedPngDataUrl;
@@ -221,7 +210,6 @@ export const galeri = () => {
         stopCameraStream();
     });
 
-    // Fallback: jika tamu memakai input kamera bawaan HP (<input type="file" capture>)
     fallbackCameraInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -230,7 +218,6 @@ export const galeri = () => {
         reader.onload = (event) => {
             const img = new Image();
             img.onload = () => {
-                // Konversi gambar ke PNG berkualitas tinggi via Canvas (batasi max sisi 1920px agar stabil saat upload)
                 const maxDim = 1920;
                 let w = img.width;
                 let h = img.height;
@@ -266,7 +253,6 @@ export const galeri = () => {
         startCameraStream();
     });
 
-    // Upload PNG ke Google Drive via Apps Script & langsung tampilkan di Galeri
     uploadPhotoBtn.addEventListener('click', async () => {
         if (!capturedPngDataUrl) return;
 
@@ -286,31 +272,22 @@ export const galeri = () => {
         loadingOverlay.style.display = 'none';
 
         if (response && response.status === 'success' && response.photo) {
-            // Langsung masukkan foto baru ke urutan pertama galeri undangan
             galleryItems.unshift(response.photo);
-            currentIndex = 0;
-            renderCarousel();
-            resetAutoPlay();
-
-            // Tutup modal
-            cameraModal.classList.remove('active');
-            cameraModal.setAttribute('aria-hidden', 'true');
-            alert('Foto berhasil disimpan ke Google Drive & ditampilkan di Galeri!');
         } else {
-            // Tetap tampilkan sementara secara lokal jika API belum di-deploy ulang
             galleryItems.unshift({
                 id: Date.now(),
                 guestName: guestName,
                 image: capturedPngDataUrl
             });
-            currentIndex = 0;
-            renderCarousel();
-            cameraModal.classList.remove('active');
-            alert('Foto ditampilkan di galeri lokal. Pastikan URL Google Apps Script sudah diperbarui agar otomatis tersimpan ke Drive.');
         }
+
+        currentIndex = 0;
+        renderCarousel();
+        resetAutoPlay();
+        cameraModal.classList.remove('active');
+        cameraModal.setAttribute('aria-hidden', 'true');
     });
 
-    // Inisialisasi awal
     renderCarousel();
     resetAutoPlay();
     loadRemotePhotos();
