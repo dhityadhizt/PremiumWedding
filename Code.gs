@@ -1,6 +1,5 @@
 // ============================================================================
 // GOOGLE APPS SCRIPT - WEDDING INVITATION (RSVP + LIVE PHOTO SHARING PNG)
-// Folder ID Target: 10VPVOU3KRLyrHAyxUUFLO67C68ICidWm
 // ============================================================================
 
 const FOLDER_ID = '10VPVOU3KRLyrHAyxUUFLO67C68ICidWm';
@@ -9,7 +8,7 @@ const SHEET_GALERI = 'LiveGaleri';
 
 function doGet(e) {
   const action = (e && e.parameter && e.parameter.action) ? e.parameter.action : 'rsvp';
-  
+
   if (action === 'gallery') {
     return getGalleryPhotos();
   }
@@ -18,9 +17,9 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    const rawData = e.postData.contents;
+    const rawData = (e && e.postData && e.postData.contents) ? e.postData.contents : '{}';
     const payload = JSON.parse(rawData);
-    
+
     if (payload.action === 'uploadPhoto') {
       return uploadLivePhoto(payload);
     } else {
@@ -34,42 +33,67 @@ function doPost(e) {
   }
 }
 
-// --- 1. FUNGSI UPLOAD FOTO PNG KE GOOGLE DRIVE & CATAT DI SPREADSHEET ---
+function getTargetSpreadsheet() {
+  const active = SpreadsheetApp.getActiveSpreadsheet();
+  if (active) return active;
+
+  // Fallback jika skrip dijalankan/diakses tanpa active spreadsheet terikat
+  const props = PropertiesService.getScriptProperties();
+  let ssId = props.getProperty('LINKED_SPREADSHEET_ID');
+  if (ssId) {
+    return SpreadsheetApp.openById(ssId);
+  }
+
+  const folder = DriveApp.getFolderById(FOLDER_ID);
+  const files = folder.getFilesByMimeType(MimeType.GOOGLE_SHEETS);
+  if (files.hasNext()) {
+    const file = files.next();
+    props.setProperty('LINKED_SPREADSHEET_ID', file.getId());
+    return SpreadsheetApp.openById(file.getId());
+  }
+
+  const newSs = SpreadsheetApp.create('Wedding Live Gallery & RSVP Log');
+  const newFile = DriveApp.getFileById(newSs.getId());
+  newFile.moveTo(folder);
+  props.setProperty('LINKED_SPREADSHEET_ID', newSs.getId());
+  return newSs;
+}
+
 function uploadLivePhoto(payload) {
   const folder = DriveApp.getFolderById(FOLDER_ID);
-  
-  // Hapus prefix data URL (data:image/png;base64,) jika ada
-  const base64Data = payload.image.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
+
+  const rawImage = String(payload.image || '');
+  const base64Data = rawImage.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '').replace(/\s+/g, '');
+  if (!base64Data) {
+    throw new Error('Data gambar kosong atau tidak valid');
+  }
+
   const decodedBytes = Utilities.base64Decode(base64Data);
-  
-  const guestName = (payload.guestName || 'Tamu').replace(/[^a-zA-Z0-9_\- ]/g, '').trim() || 'Tamu';
+
+  const guestName = String(payload.guestName || 'Tamu').replace(/[^a-zA-Z0-9_\- ]/g, '').trim() || 'Tamu';
   const timestamp = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyyMMdd_HHmmss');
   const fileName = 'Wedding_' + guestName.replace(/\s+/g, '_') + '_' + timestamp + '.png';
-  
-  // Simpan sebagai PNG berkualitas penuh di Google Drive
+
   const blob = Utilities.newBlob(decodedBytes, 'image/png', fileName);
   const file = folder.createFile(blob);
-  
-  // Set izin akses agar foto bisa langsung tampil di galeri undangan semua tamu
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  
+
   const fileId = file.getId();
-  // URL langsung yang stabil untuk ditampilkan di tag <img>
-  const imageUrl = 'https://lh3.googleusercontent.com/d/' + fileId + '=w1200';
+  // Menggunakan format thumbnail/uc yang lebih konsisten untuk gambar Drive publik
+  const imageUrl = 'https://lh3.googleusercontent.com/d/' + fileId;
   const driveUrl = file.getUrl();
-  
-  // Simpan log ke Spreadsheet sheet "LiveGaleri"
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  const ss = getTargetSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_GALERI);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_GALERI);
     sheet.appendRow(['ID', 'Waktu', 'Nama Tamu', 'Nama File', 'Image URL', 'Drive Link']);
   }
-  
+
   const photoId = new Date().getTime();
   const formattedDate = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss');
   sheet.appendRow([photoId, formattedDate, guestName, fileName, imageUrl, driveUrl]);
-  
+
   return ContentService.createTextOutput(JSON.stringify({
     status: 'success',
     photo: {
@@ -82,22 +106,20 @@ function uploadLivePhoto(payload) {
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
-// --- 2. FUNGSI AMBIL DAFTAR FOTO LIVE GALLERY ---
 function getGalleryPhotos() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getTargetSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_GALERI);
-  
+
   if (!sheet) {
     return ContentService.createTextOutput(JSON.stringify({
       status: 'success',
       photos: []
     })).setMimeType(ContentService.MimeType.JSON);
   }
-  
+
   const rows = sheet.getDataRange().getValues();
   const photos = [];
-  
-  // Mulai dari baris ke-2 (index 1) melewati header, urutkan dari terbaru
+
   for (let i = rows.length - 1; i >= 1; i--) {
     if (rows[i][4]) {
       photos.push({
@@ -110,22 +132,21 @@ function getGalleryPhotos() {
       });
     }
   }
-  
+
   return ContentService.createTextOutput(JSON.stringify({
     status: 'success',
     photos: photos
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
-// --- 3. FUNGSI UCAPAN & DOA (RSVP) ---
 function saveRsvpComment(payload) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getTargetSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_RSVP);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_RSVP);
     sheet.appendRow(['id', 'name', 'status', 'message', 'date', 'color']);
   }
-  
+
   sheet.appendRow([
     payload.id || new Date().getTime(),
     payload.name || '',
@@ -134,22 +155,22 @@ function saveRsvpComment(payload) {
     payload.date || '',
     payload.color || '#000000'
   ]);
-  
+
   return ContentService.createTextOutput(JSON.stringify({
     status: 'success'
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
 function getRsvpComments() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getTargetSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_RSVP);
   if (!sheet) {
     sheet = ss.getSheets()[0];
   }
-  
+
   const rows = sheet.getDataRange().getValues();
   const comentar = [];
-  
+
   for (let i = 1; i < rows.length; i++) {
     if (rows[i][1]) {
       comentar.push({
@@ -162,7 +183,7 @@ function getRsvpComments() {
       });
     }
   }
-  
+
   return ContentService.createTextOutput(JSON.stringify({
     comentar: comentar
   })).setMimeType(ContentService.MimeType.JSON);
