@@ -8,12 +8,14 @@ import {welcome} from "./js/welcome.js";
 
 // load content
 document.addEventListener('DOMContentLoaded', () => {
-    AOS.init();
+    if (window.AOS && typeof window.AOS.init === 'function') {
+        window.AOS.init();
+    }
 
     welcome();
     navbar();
     home();
-    bride()
+    bride();
     time();
     galeri();
     wishas();
