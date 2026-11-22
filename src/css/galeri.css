@@ -401,8 +401,9 @@
 
 @media screen and (max-width: 768px) {
     .galeri {
-        margin-top: -6rem;
-        padding: 4rem 1.2rem 10rem;
+        min-height: auto;
+        margin-top: -4rem;
+        padding: 3rem 1.2rem 1.5rem;
     }
 
     .galeri .container {
