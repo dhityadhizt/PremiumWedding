@@ -5,6 +5,7 @@
 .welcome {
   width: 100%;
   height: 100vh;
+  height: 100dvh; /* Lebih akurat di layar HP dengan address bar */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17,7 +18,8 @@
   bottom: 0;
   z-index: 99;
   color: #1a202c;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 
   /* Background image solid */
   background-image: url('../assets/images/bg.jpeg');
@@ -53,15 +55,15 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 500px;
-  padding: 0 1.5rem;
+  max-width: 480px;
+  padding: 1rem 1.25rem;
   transform-style: preserve-3d;
 }
 
 /* --- ORNAMEN ATAS --- */
 .welcome-ornament.top {
   width: 100%;
-  max-width: 400px;
+  max-width: 380px;
   height: auto;
   object-fit: contain;
   opacity: 0;
@@ -73,9 +75,9 @@
 .welcome.active .welcome-ornament.top {
   opacity: 0.9;
   transform: translateY(0) translateZ(60px) rotate(0deg);
-  transition-delay: 1.6s; 
+  transition-delay: 1.6s;
   animation: swayOrnamentTop 6s ease-in-out infinite;
-  animation-delay: 2.2s; 
+  animation-delay: 2.2s;
 }
 
 /* --- INFORMASI UTAMA & EFEK STAGGERED DI DALAMNYA --- */
@@ -125,7 +127,7 @@
 /* --- ORNAMEN BAWAH --- */
 .welcome-ornament.bottom {
   width: 100%;
-  max-width: 400px;
+  max-width: 380px;
   height: auto;
   object-fit: contain;
   opacity: 0;
@@ -139,7 +141,7 @@
   transform: translateY(0) translateZ(30px) rotate(0deg);
   transition-delay: 1.8s;
   animation: swayOrnamentBottom 7.5s ease-in-out infinite;
-  animation-delay: 2.4s; 
+  animation-delay: 2.4s;
 }
 
 /* =================================================_ */
@@ -164,37 +166,53 @@
 }
 
 /* =================================================_ */
-/* DETAIL ELEMEN KONTEN                              */
+/* DETAIL ELEMEN KONTEN & BINGKAI FOTO ARCH          */
 /* =================================================_ */
 
 .welcome h2 {
-  font-size: 2.8rem;
+  font-size: 2.6rem;
   font-family: var(--sacramento);
   font-weight: 700;
   color: #0f172a;
   text-shadow: 0 2px 8px rgba(255, 255, 255, 0.9);
-  margin: 0.5rem 0;
+  margin: 0.35rem 0;
+  line-height: 1.15;
 }
 
 .welcome figure {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  margin: 0.6rem 0;
+  margin: 0.6rem auto;
+  /* Ukuran bingkai utama (proporsi tinggi > lebar seperti referensi) */
+  width: clamp(12.5rem, 52vw, 15.5rem);
+  aspect-ratio: 3 / 3.85;
+}
+
+/* Garis aksen emas tipis di luar foto */
+.welcome figure::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 16px 16px 999px 999px;
+  border: 1.5px solid rgba(184, 146, 74, 0.85);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .welcome figure img {
-  width: 12rem;
-  height: 15.5rem;
-  border-radius: 0 0 999px 999px;
+  width: 100%;
+  height: 100%;
+  /* Atas sedikit membulat, bawah melengkung penuh menyerupai kubah/U */
+  border-radius: 12px 12px 999px 999px;
   object-fit: cover;
   object-position: center top;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
-  border-top: none;
-  border-left: 2px solid #b89446;
-  border-right: 2px solid #b89446;
-  border-bottom: 2px solid #b89446;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.16);
+  border: 3px solid #ffffff;
+  position: relative;
+  z-index: 2;
 }
 
 .welcome figure figcaption {
@@ -202,17 +220,17 @@
   font-family: var(--sacramento);
   font-weight: 600;
   color: #1a202c;
-  margin-top: 0.5rem;
-  text-shadow: 0 1px 5px rgba(255, 255, 255, 0.8);
+  margin-top: 0.65rem;
+  text-shadow: 0 1px 5px rgba(255, 255, 255, 0.85);
 }
 
 .welcome p span {
-  font-size: 2rem;
-  margin: 0.5rem 0;
+  font-size: 1.85rem;
+  margin: 0.35rem 0;
   display: block;
   color: #0f172a;
   font-weight: 700;
-  text-shadow: 0 1px 5px rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 5px rgba(255, 255, 255, 0.85);
 }
 
 /* --- TOMBOL BUKA UNDANGAN --- */
@@ -230,7 +248,7 @@
   cursor: pointer;
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  margin-top: 1rem;
+  margin-top: 0.85rem;
 }
 
 .welcome button:hover {
@@ -242,4 +260,78 @@
 
 .welcome button i {
   font-size: 1.2rem;
+}
+
+/* =================================================_ */
+/* RESPONSIVE KHUSUS LAYAR HP                          */
+/* =================================================_ */
+@media (max-width: 576px) {
+  .welcome-content {
+    padding: 0.75rem 1rem;
+    max-width: 100%;
+  }
+
+  .welcome-ornament.top,
+  .welcome-ornament.bottom {
+    max-width: 290px;
+  }
+
+  .welcome h2 {
+    font-size: 2.15rem;
+    margin: 0.25rem 0;
+  }
+
+  .welcome figure {
+    width: clamp(10.5rem, 48vw, 12.75rem);
+    aspect-ratio: 3 / 3.8;
+    margin: 0.45rem auto;
+  }
+
+  .welcome figure::before {
+    inset: -6px;
+    border-radius: 14px 14px 999px 999px;
+  }
+
+  .welcome figure img {
+    border-radius: 10px 10px 999px 999px;
+    border-width: 2.5px;
+  }
+
+  .welcome p {
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  .welcome p span {
+    font-size: 1.45rem;
+    margin: 0.2rem 0;
+  }
+
+  .welcome button {
+    padding: 0.6rem 1.25rem;
+    font-size: 0.9rem;
+    margin-top: 0.65rem;
+  }
+}
+
+/* Untuk layar HP pendek (misal tinggi <= 680px) agar semua elemen tetap muat */
+@media (max-height: 680px) {
+  .welcome figure {
+    width: clamp(9.25rem, 42vw, 11.5rem);
+    aspect-ratio: 3 / 3.65;
+    margin: 0.35rem auto;
+  }
+
+  .welcome h2 {
+    font-size: 1.9rem;
+  }
+
+  .welcome p span {
+    font-size: 1.3rem;
+  }
+
+  .welcome-ornament.top,
+  .welcome-ornament.bottom {
+    max-width: 240px;
+  }
 }
