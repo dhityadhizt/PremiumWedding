@@ -60,28 +60,34 @@
   transform-style: preserve-3d;
 }
 
-/* --- ORNAMEN ATAS (Posisi dipertahankan) --- */
+/* --- ORNAMEN ATAS (Lapisan atas menumpuk bagian atas foto) --- */
 .welcome-ornament.top {
+  position: relative;
+  z-index: 10;
   width: 100%;
   max-width: 400px;
   height: auto;
   object-fit: contain;
+  margin-bottom: -2.4rem; /* Menumpuk ke bagian atas bingkai foto */
   opacity: 0;
   transform: translateY(-20px) translateZ(60px) rotate(0deg);
   transition: opacity 0.8s ease, transform 0.8s ease;
   will-change: transform;
+  pointer-events: none;
 }
 
 .welcome.active .welcome-ornament.top {
-  opacity: 0.9;
+  opacity: 0.95;
   transform: translateY(0) translateZ(60px) rotate(0deg);
   transition-delay: 1.6s;
   animation: swayOrnamentTop 6s ease-in-out infinite;
   animation-delay: 2.2s;
 }
 
-/* --- INFORMASI UTAMA: FOTO DI ATAS, TULISAN DI BAWAH --- */
+/* --- INFORMASI UTAMA --- */
 .welcome-info {
+  position: relative;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -95,23 +101,19 @@
   will-change: opacity, transform;
 }
 
-/* Urutan visual: Foto dulu di atas, lalu tulisan-tulisan di bawahnya */
 .welcome.active .welcome-info > figure {
-  order: 1;
   opacity: 1;
   transform: translateY(0);
   transition-delay: 0.8s;
 }
 
 .welcome.active .welcome-info > h2 {
-  order: 2;
   opacity: 1;
   transform: translateY(0);
   transition-delay: 1.0s;
 }
 
 .welcome.active .welcome-info > p {
-  order: 3;
   opacity: 1;
   transform: translateY(0);
   transition-delay: 1.2s;
@@ -119,14 +121,15 @@
 
 .welcome.active .welcome-info > div,
 .welcome.active .welcome-info > button {
-  order: 4;
   opacity: 1;
   transform: translateY(0);
   transition-delay: 1.4s;
 }
 
-/* --- ORNAMEN BAWAH (Posisi dipertahankan) --- */
+/* --- ORNAMEN BAWAH --- */
 .welcome-ornament.bottom {
+  position: relative;
+  z-index: 10;
   width: 100%;
   max-width: 400px;
   height: auto;
@@ -135,10 +138,11 @@
   transform: translateY(20px) translateZ(30px) rotate(0deg);
   transition: opacity 0.8s ease, transform 0.8s ease;
   will-change: transform;
+  pointer-events: none;
 }
 
 .welcome.active .welcome-ornament.bottom {
-  opacity: 0.9;
+  opacity: 0.95;
   transform: translateY(0) translateZ(30px) rotate(0deg);
   transition-delay: 1.8s;
   animation: swayOrnamentBottom 7.5s ease-in-out infinite;
@@ -167,76 +171,71 @@
 }
 
 /* =================================================_ */
-/* BINGKAI FOTO & TULISAN DI BAWAH FOTO               */
+/* BINGKAI FOTO & URUTAN TEKS DI BAWAH FOTO           */
 /* =================================================_ */
 
+/* 1. Foto di lapisan bawah (z-index lebih rendah dari ornamen atas) */
 .welcome figure {
   order: 1;
   position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  margin: 0.35rem auto 0.65rem;
-  /* Ukuran besar & proporsi memanjang vertikal seperti contoh */
-  width: clamp(14.5rem, 68vw, 19.5rem);
-  aspect-ratio: 3 / 3.9;
+  margin: 0 auto 0.5rem;
+  width: clamp(14.5rem, 68vw, 19rem);
 }
 
-/* Garis bingkai tipis emas di bagian luar foto */
-.welcome figure::before {
-  content: "";
-  position: absolute;
-  inset: -7px;
-  border-radius: 14px 14px 999px 999px;
-  border: 1.5px solid rgba(184, 146, 74, 0.85);
-  pointer-events: none;
-  z-index: 1;
-}
-
+/* Bingkai mengikuti ukuran & bentuk foto */
 .welcome figure img {
   width: 100%;
-  height: 100%;
-  /* Atas sedikit membulat, bawah melengkung penuh membentuk lengkung U */
-  border-radius: 10px 10px 999px 999px;
+  aspect-ratio: 3 / 3.85;
+  border-radius: 12px 12px 999px 999px;
   object-fit: cover;
   object-position: center top;
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.16);
   border: 3px solid #ffffff;
+  outline: 1.5px solid rgba(184, 146, 74, 0.85);
+  outline-offset: 5px;
   position: relative;
   z-index: 2;
 }
 
-.welcome figure figcaption {
-  font-size: var(--fontSize-heading-base);
-  font-family: var(--sacramento);
-  font-weight: 600;
-  color: #1a202c;
-  margin-top: 0.5rem;
-  text-shadow: 0 1px 5px rgba(255, 255, 255, 0.85);
-}
-
-/* Tulisan berada di bawah foto */
+/* 2. "The Wedding Of" berada di atas nama pasangan */
 .welcome h2 {
   order: 2;
-  font-size: 2.35rem;
+  font-size: 2.1rem;
   font-family: var(--sacramento);
   font-weight: 700;
   color: #0f172a;
   text-shadow: 0 2px 8px rgba(255, 255, 255, 0.9);
-  margin: 0.25rem 0;
+  margin: 0.45rem 0 0.1rem;
   line-height: 1.15;
 }
 
-.welcome p {
+/* Nama pasangan ("Aditya & Diva") berada di bawah "The Wedding Of" */
+.welcome figure figcaption {
   order: 3;
-  margin: 0.2rem 0;
+  font-size: 2.3rem;
+  font-family: var(--sacramento);
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 0.1rem;
+  line-height: 1.2;
+  text-shadow: 0 1px 5px rgba(255, 255, 255, 0.85);
+}
+
+/* Jika di HTML nama pasangan berada di dalam <p> atau elemen lain, pastikan tetap di bawah h2 */
+.welcome p {
+  order: 4;
+  margin: 0.25rem 0;
   line-height: 1.35;
 }
 
 .welcome p span {
-  font-size: 1.7rem;
-  margin: 0.2rem 0;
+  font-size: 1.65rem;
+  margin: 0.15rem 0;
   display: block;
   color: #0f172a;
   font-weight: 700;
@@ -245,7 +244,7 @@
 
 /* --- TOMBOL BUKA UNDANGAN --- */
 .welcome button {
-  order: 4;
+  order: 5;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -259,7 +258,7 @@
   cursor: pointer;
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  margin-top: 0.6rem;
+  margin-top: 0.55rem;
 }
 
 .welcome button:hover {
@@ -282,25 +281,34 @@
     max-width: 100%;
   }
 
-  .welcome figure {
-    width: clamp(13rem, 64vw, 16.5rem);
-    aspect-ratio: 3 / 3.85;
-    margin: 0.25rem auto 0.55rem;
+  .welcome-ornament.top {
+    max-width: 320px;
+    margin-bottom: -1.9rem;
   }
 
-  .welcome figure::before {
-    inset: -6px;
-    border-radius: 12px 12px 999px 999px;
+  .welcome-ornament.bottom {
+    max-width: 320px;
+  }
+
+  .welcome figure {
+    width: clamp(13rem, 64vw, 16.5rem);
+    margin: 0 auto 0.45rem;
   }
 
   .welcome figure img {
-    border-radius: 9px 9px 999px 999px;
+    aspect-ratio: 3 / 3.8;
+    border-radius: 10px 10px 999px 999px;
     border-width: 2.5px;
+    outline-offset: 4px;
   }
 
   .welcome h2 {
+    font-size: 1.85rem;
+    margin-top: 0.45rem;
+  }
+
+  .welcome figure figcaption {
     font-size: 2rem;
-    margin: 0.15rem 0;
   }
 
   .welcome p {
@@ -308,30 +316,39 @@
   }
 
   .welcome p span {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
     margin: 0.15rem 0;
   }
 
   .welcome button {
     padding: 0.55rem 1.2rem;
     font-size: 0.88rem;
-    margin-top: 0.5rem;
+    margin-top: 0.45rem;
   }
 }
 
-/* Untuk layar HP pendek agar semua tetap pas tanpa terpotong */
 @media (max-height: 700px) {
+  .welcome-ornament.top {
+    margin-bottom: -1.5rem;
+  }
+
   .welcome figure {
     width: clamp(11.5rem, 56vw, 14.5rem);
-    aspect-ratio: 3 / 3.75;
-    margin: 0.2rem auto 0.4rem;
+  }
+
+  .welcome figure img {
+    aspect-ratio: 3 / 3.7;
   }
 
   .welcome h2 {
+    font-size: 1.65rem;
+  }
+
+  .welcome figure figcaption {
     font-size: 1.8rem;
   }
 
   .welcome p span {
-    font-size: 1.25rem;
+    font-size: 1.2rem;
   }
 }
