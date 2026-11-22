@@ -11,7 +11,7 @@ export const galleryService = {
             }
             return [];
         } catch (error) {
-            console.warn('Gagal memuat foto dari Google Drive:', error);
+            console.warn('Gagal memuat foto:', error);
             return [];
         }
     },
@@ -19,7 +19,7 @@ export const galleryService = {
     uploadPhoto: async function ({ guestName, imageBase64 }) {
         const payload = {
             action: 'uploadPhoto',
-            guestName: guestName || 'Tamu Undangan',
+            guestName: guestName || 'Fansku',
             image: imageBase64
         };
 
