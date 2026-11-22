@@ -181,16 +181,20 @@
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  margin: 0.8rem 0;
+  margin: 0.6rem 0;
 }
 
 .welcome figure img {
-  width: 9rem;
-  height: 9rem;
-  border-radius: 50%;
+  width: 12rem;
+  height: 15.5rem;
+  border-radius: 0 0 999px 999px;
   object-fit: cover;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-  border: 3px solid #ffffff;
+  object-position: center top;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+  border-top: none;
+  border-left: 2px solid #b89446;
+  border-right: 2px solid #b89446;
+  border-bottom: 2px solid #b89446;
 }
 
 .welcome figure figcaption {
