@@ -40,7 +40,7 @@ export const data = {
                 start: '11.00',
                 finish: 'Selesai'
             },
-            address: 'Bantul, Yogyakarta', // <-- Alamat Khusus Tasyakuran
+            address: 'Monstera Kopi dan Venue, Kec. Banguntapan, Kabupaten Bantul', // <-- Alamat Khusus Tasyakuran
             map: 'https://maps.app.goo.gl/j26VbCMfVoD6oGV2A?g_st=ic' // <-- Link Google Maps Tasyakuran
         }
     },
@@ -59,7 +59,7 @@ export const data = {
             id: 1,
             name: 'Aditya Putera Prakosa',
             icon: './src/assets/images/seabank.png',
-            rekening: '00000000'
+            rekening: '901349334260'
         },
         {
             id: 2,
