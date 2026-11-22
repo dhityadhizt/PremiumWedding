@@ -267,9 +267,9 @@ export const galeri = () => {
     uploadPhotoBtn.addEventListener('click', async () => {
         if (!capturedImageDataUrl) return;
 
-        const guestName = guestNameInput.value.trim() || 'Tamu Undangan';
+        const guestName = guestNameInput.value.trim() || 'Fansku';
         loadingOverlay.style.display = 'flex';
-        statusTextEl.textContent = 'Menyimpan foto ke Google Drive...';
+        statusTextEl.textContent = 'Loading... Sabar, fans';
         uploadPhotoBtn.disabled = true;
         retakePhotoBtn.disabled = true;
 
@@ -292,7 +292,7 @@ export const galeri = () => {
         } else {
             const errMsg = (response && response.message)
                 ? response.message
-                : 'Gagal mengupload foto ke Google Drive. Periksa deployment Apps Script & izin Drive.';
+                : 'Gagal mengupload foto. Periksa deployment Apps Script & izin Drive.';
             alert(errMsg);
         }
     });
