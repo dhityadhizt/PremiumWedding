@@ -1,6 +1,9 @@
 import { data } from "../assets/data/data.js";
 import { galleryService } from "../services/galleryService.js";
 
+const MAX_IMAGE_DIMENSION = 1200;
+const JPEG_QUALITY = 0.82;
+
 export const galeri = () => {
     const galeriElement = document.querySelector('.galeri');
     const container = galeriElement.querySelector('.container');
@@ -39,7 +42,7 @@ export const galeri = () => {
 
     let currentStream = null;
     let facingMode = 'environment';
-    let capturedPngDataUrl = null;
+    let capturedImageDataUrl = null;
 
     const urlParams = new URLSearchParams(window.location.search);
     const toParam = urlParams.get('to');
@@ -51,6 +54,21 @@ export const galeri = () => {
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
+    };
+
+    const fitDimensions = (width, height, maxDim) => {
+        let w = width || 1280;
+        let h = height || 720;
+        if (w > maxDim || h > maxDim) {
+            if (w > h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+            } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+            }
+        }
+        return { width: w, height: h };
     };
 
     const renderCarousel = () => {
@@ -141,7 +159,7 @@ export const galeri = () => {
 
     const startCameraStream = async () => {
         stopCameraStream();
-        capturedPngDataUrl = null;
+        capturedImageDataUrl = null;
         previewImgEl.style.display = 'none';
         videoStreamEl.style.display = 'block';
         captureControls.style.display = 'flex';
@@ -154,8 +172,8 @@ export const galeri = () => {
             const constraints = {
                 video: {
                     facingMode: { ideal: facingMode },
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
                 },
                 audio: false
             };
@@ -186,22 +204,25 @@ export const galeri = () => {
     capturePhotoBtn.addEventListener('click', () => {
         if (!currentStream) return;
 
-        const videoWidth = videoStreamEl.videoWidth || 1280;
-        const videoHeight = videoStreamEl.videoHeight || 720;
+        const { width, height } = fitDimensions(
+            videoStreamEl.videoWidth,
+            videoStreamEl.videoHeight,
+            MAX_IMAGE_DIMENSION
+        );
 
-        canvasEl.width = videoWidth;
-        canvasEl.height = videoHeight;
+        canvasEl.width = width;
+        canvasEl.height = height;
 
         const ctx = canvasEl.getContext('2d');
         if (facingMode === 'user') {
-            ctx.translate(videoWidth, 0);
+            ctx.translate(width, 0);
             ctx.scale(-1, 1);
         }
-        ctx.drawImage(videoStreamEl, 0, 0, videoWidth, videoHeight);
+        ctx.drawImage(videoStreamEl, 0, 0, width, height);
 
-        capturedPngDataUrl = canvasEl.toDataURL('image/png');
+        capturedImageDataUrl = canvasEl.toDataURL('image/jpeg', JPEG_QUALITY);
 
-        previewImgEl.src = capturedPngDataUrl;
+        previewImgEl.src = capturedImageDataUrl;
         videoStreamEl.style.display = 'none';
         previewImgEl.style.display = 'block';
         captureControls.style.display = 'none';
@@ -218,25 +239,15 @@ export const galeri = () => {
         reader.onload = (event) => {
             const img = new Image();
             img.onload = () => {
-                const maxDim = 1920;
-                let w = img.width;
-                let h = img.height;
-                if (w > maxDim || h > maxDim) {
-                    if (w > h) {
-                        h = Math.round((h * maxDim) / w);
-                        w = maxDim;
-                    } else {
-                        w = Math.round((w * maxDim) / h);
-                        h = maxDim;
-                    }
-                }
-                canvasEl.width = w;
-                canvasEl.height = h;
-                const ctx = canvasEl.getContext('2d');
-                ctx.drawImage(img, 0, 0, w, h);
+                const { width, height } = fitDimensions(img.width, img.height, MAX_IMAGE_DIMENSION);
+                canvasEl.width = width;
+                canvasEl.height = height;
 
-                capturedPngDataUrl = canvasEl.toDataURL('image/png');
-                previewImgEl.src = capturedPngDataUrl;
+                const ctx = canvasEl.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                capturedImageDataUrl = canvasEl.toDataURL('image/jpeg', JPEG_QUALITY);
+                previewImgEl.src = capturedImageDataUrl;
                 videoStreamEl.style.display = 'none';
                 previewImgEl.style.display = 'block';
                 captureControls.style.display = 'none';
@@ -254,17 +265,17 @@ export const galeri = () => {
     });
 
     uploadPhotoBtn.addEventListener('click', async () => {
-        if (!capturedPngDataUrl) return;
+        if (!capturedImageDataUrl) return;
 
         const guestName = guestNameInput.value.trim() || 'Tamu Undangan';
         loadingOverlay.style.display = 'flex';
-        statusTextEl.textContent = 'Menyimpan foto PNG ke Google Drive...';
+        statusTextEl.textContent = 'Menyimpan foto ke Google Drive...';
         uploadPhotoBtn.disabled = true;
         retakePhotoBtn.disabled = true;
 
         const response = await galleryService.uploadPhoto({
             guestName: guestName,
-            imageBase64: capturedPngDataUrl
+            imageBase64: capturedImageDataUrl
         });
 
         uploadPhotoBtn.disabled = false;
@@ -273,19 +284,17 @@ export const galeri = () => {
 
         if (response && response.status === 'success' && response.photo) {
             galleryItems.unshift(response.photo);
+            currentIndex = 0;
+            renderCarousel();
+            resetAutoPlay();
+            cameraModal.classList.remove('active');
+            cameraModal.setAttribute('aria-hidden', 'true');
         } else {
-            galleryItems.unshift({
-                id: Date.now(),
-                guestName: guestName,
-                image: capturedPngDataUrl
-            });
+            const errMsg = (response && response.message)
+                ? response.message
+                : 'Gagal mengupload foto ke Google Drive. Periksa deployment Apps Script & izin Drive.';
+            alert(errMsg);
         }
-
-        currentIndex = 0;
-        renderCarousel();
-        resetAutoPlay();
-        cameraModal.classList.remove('active');
-        cameraModal.setAttribute('aria-hidden', 'true');
     });
 
     renderCarousel();
