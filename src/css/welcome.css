@@ -5,11 +5,10 @@
 .welcome {
   width: 100%;
   height: 100vh;
-  height: 100dvh;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  flex-direction: column !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
   text-align: center;
   position: fixed;
   top: 0;
@@ -18,17 +17,20 @@
   bottom: 0;
   z-index: 99;
   color: #1a202c;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 
+  /* Background image solid */
   background-image: url('../assets/images/bg.jpeg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 
+  /* Efek Fade In awal untuk Background */
   opacity: 0;
   visibility: hidden;
   transition: opacity 1s ease, visibility 1s ease;
+
+  /* Perspektif 3D Utama */
   perspective: 1200px;
 }
 
@@ -44,48 +46,43 @@
   transition: opacity 1s ease, visibility 1s ease;
 }
 
+/* Container Konten */
 .welcome-content {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   max-width: 500px;
-  min-height: 100%;
-  padding: 0.5rem 1.25rem 1rem;
+  padding: 0 1.5rem;
   transform-style: preserve-3d;
 }
 
-/* Ornamen atas di lapisan atas, menutupi sedikit bagian atas foto */
+/* --- ORNAMEN ATAS --- */
 .welcome-ornament.top {
-  position: relative;
-  z-index: 30 !important;
   width: 100%;
-  max-width: 390px;
+  max-width: 400px;
   height: auto;
   object-fit: contain;
-  margin-bottom: -3.2rem !important;
   opacity: 0;
   transform: translateY(-20px) translateZ(60px) rotate(0deg);
   transition: opacity 0.8s ease, transform 0.8s ease;
   will-change: transform;
-  pointer-events: none;
 }
 
 .welcome.active .welcome-ornament.top {
-  opacity: 0.98;
+  opacity: 0.9;
   transform: translateY(0) translateZ(60px) rotate(0deg);
-  transition-delay: 1.6s;
+  transition-delay: 1.6s; 
   animation: swayOrnamentTop 6s ease-in-out infinite;
-  animation-delay: 2.2s;
+  animation-delay: 2.2s; 
 }
 
+/* --- INFORMASI UTAMA & EFEK STAGGERED DI DALAMNYA --- */
 .welcome-info {
-  position: relative;
-  z-index: 10 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
 }
 
@@ -96,24 +93,28 @@
   will-change: opacity, transform;
 }
 
-.welcome.active .welcome-info > figure {
+/* 1. Judul ("The Wedding Of") */
+.welcome.active .welcome-info > h2 {
   opacity: 1;
   transform: translateY(0);
   transition-delay: 0.8s;
 }
 
-.welcome.active .welcome-info > h2 {
+/* 2. Foto / Animasi Pasangan */
+.welcome.active .welcome-info > figure {
   opacity: 1;
   transform: translateY(0);
   transition-delay: 1.0s;
 }
 
+/* 3. Teks Kepada Yth / Nama Tamu */
 .welcome.active .welcome-info > p {
   opacity: 1;
   transform: translateY(0);
   transition-delay: 1.2s;
 }
 
+/* 4. Tombol "Buka Undangan" */
 .welcome.active .welcome-info > div,
 .welcome.active .welcome-info > button {
   opacity: 1;
@@ -121,29 +122,29 @@
   transition-delay: 1.4s;
 }
 
+/* --- ORNAMEN BAWAH --- */
 .welcome-ornament.bottom {
-  position: relative;
-  z-index: 30 !important;
   width: 100%;
-  max-width: 390px;
+  max-width: 400px;
   height: auto;
   object-fit: contain;
-  margin-top: auto;
   opacity: 0;
   transform: translateY(20px) translateZ(30px) rotate(0deg);
   transition: opacity 0.8s ease, transform 0.8s ease;
   will-change: transform;
-  pointer-events: none;
 }
 
 .welcome.active .welcome-ornament.bottom {
-  opacity: 0.98;
+  opacity: 0.9;
   transform: translateY(0) translateZ(30px) rotate(0deg);
   transition-delay: 1.8s;
   animation: swayOrnamentBottom 7.5s ease-in-out infinite;
-  animation-delay: 2.4s;
+  animation-delay: 2.4s; 
 }
 
+/* =================================================_ */
+/* KEYFRAMES SWAY SMOOTH (Tanpa Jeda / Seamless)     */
+/* =================================================_ */
 @keyframes swayOrnamentTop {
   0%, 100% {
     transform: translateY(0) translateZ(60px) rotate(0deg);
@@ -162,81 +163,55 @@
   }
 }
 
-/* 1. Foto di bagian atas & lapisan bawah (di bawah ornamen atas) */
-.welcome figure {
-  order: 1 !important;
-  position: relative;
-  z-index: 5 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-direction: column !important;
-  margin: 0 auto 0.45rem !important;
-  width: clamp(15rem, 72vw, 20.5rem) !important;
-}
+/* =================================================_ */
+/* DETAIL ELEMEN KONTEN                              */
+/* =================================================_ */
 
-.welcome figure img {
-  width: 100% !important;
-  height: auto !important;
-  aspect-ratio: 3 / 3.95 !important;
-  border-radius: 14px 14px 999px 999px !important;
-  object-fit: cover !important;
-  object-position: center top !important;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.16);
-  border: 3px solid #ffffff;
-  outline: 1.5px solid rgba(184, 146, 74, 0.85);
-  outline-offset: 4px;
-  position: relative;
-  z-index: 5;
-}
-
-/* 2. "The Wedding Of" di atas nama */
 .welcome h2 {
-  order: 2 !important;
-  font-size: 2rem;
+  font-size: 2.8rem;
   font-family: var(--sacramento);
   font-weight: 700;
   color: #0f172a;
   text-shadow: 0 2px 8px rgba(255, 255, 255, 0.9);
-  margin: 0.45rem 0 0.05rem !important;
-  line-height: 1.15;
+  margin: 0.5rem 0;
 }
 
-/* 3. Nama pasangan di bawah "The Wedding Of" */
-.welcome figure figcaption,
-.welcome figure > :not(img) {
-  order: 3 !important;
-  font-size: 2.25rem;
+.welcome figure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  margin: 0.8rem 0;
+}
+
+.welcome figure img {
+  width: 9rem;
+  height: 9rem;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  border: 3px solid #ffffff;
+}
+
+.welcome figure figcaption {
+  font-size: var(--fontSize-heading-base);
   font-family: var(--sacramento);
-  font-weight: 700;
-  color: #0f172a;
-  margin-top: 0.1rem;
-  line-height: 1.2;
-  text-shadow: 0 1px 5px rgba(255, 255, 255, 0.85);
-}
-
-/* 4. Teks tamu di bawah nama */
-.welcome p {
-  order: 4 !important;
-  margin: 0.2rem 0 !important;
-  line-height: 1.35;
+  font-weight: 600;
+  color: #1a202c;
+  margin-top: 0.5rem;
+  text-shadow: 0 1px 5px rgba(255, 255, 255, 0.8);
 }
 
 .welcome p span {
-  font-size: 1.65rem;
-  margin: 0.15rem 0;
+  font-size: 2rem;
+  margin: 0.5rem 0;
   display: block;
   color: #0f172a;
   font-weight: 700;
-  text-shadow: 0 1px 5px rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 5px rgba(255, 255, 255, 0.8);
 }
 
-/* 5. Tombol Buka Undangan */
-.welcome-info > div,
-.welcome button {
-  order: 5 !important;
-}
-
+/* --- TOMBOL BUKA UNDANGAN --- */
 .welcome button {
   display: flex;
   align-items: center;
@@ -244,14 +219,14 @@
   gap: 0.5rem;
   color: #ffffff;
   background-color: #0f172a;
-  padding: 0.65rem 1.35rem;
+  padding: 0.7rem 1.4rem;
   border: none;
   transition: all 0.3s ease;
   border-radius: 20px;
   cursor: pointer;
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  margin-top: 0.5rem;
+  margin-top: 1rem;
 }
 
 .welcome button:hover {
@@ -263,84 +238,4 @@
 
 .welcome button i {
   font-size: 1.2rem;
-}
-
-@media (max-width: 576px) {
-  .welcome-content {
-    padding: 0.4rem 1rem 0.9rem;
-    max-width: 100%;
-  }
-
-  .welcome-ornament.top {
-    max-width: 330px;
-    margin-bottom: -2.6rem !important;
-  }
-
-  .welcome-ornament.bottom {
-    max-width: 330px;
-  }
-
-  .welcome figure {
-    width: clamp(13.5rem, 68vw, 17.5rem) !important;
-    margin: 0 auto 0.4rem !important;
-  }
-
-  .welcome figure img {
-    aspect-ratio: 3 / 3.9 !important;
-    border-radius: 12px 12px 999px 999px !important;
-    border-width: 2.5px;
-    outline-offset: 3.5px;
-  }
-
-  .welcome h2 {
-    font-size: 1.8rem;
-    margin-top: 0.4rem !important;
-  }
-
-  .welcome figure figcaption,
-  .welcome figure > :not(img) {
-    font-size: 2rem;
-  }
-
-  .welcome p {
-    font-size: 0.88rem;
-  }
-
-  .welcome p span {
-    font-size: 1.35rem;
-    margin: 0.12rem 0;
-  }
-
-  .welcome button {
-    padding: 0.55rem 1.2rem;
-    font-size: 0.88rem;
-    margin-top: 0.4rem;
-  }
-}
-
-@media (max-height: 720px) {
-  .welcome-ornament.top {
-    margin-bottom: -2.1rem !important;
-  }
-
-  .welcome figure {
-    width: clamp(12rem, 58vw, 15rem) !important;
-  }
-
-  .welcome figure img {
-    aspect-ratio: 3 / 3.8 !important;
-  }
-
-  .welcome h2 {
-    font-size: 1.65rem;
-  }
-
-  .welcome figure figcaption,
-  .welcome figure > :not(img) {
-    font-size: 1.8rem;
-  }
-
-  .welcome p span {
-    font-size: 1.2rem;
-  }
 }
