@@ -63,12 +63,12 @@
 /* --- ORNAMEN ATAS (Lapisan atas menumpuk bagian atas foto) --- */
 .welcome-ornament.top {
   position: relative;
-  z-index: 10;
+  z-index: 15;
   width: 100%;
   max-width: 400px;
   height: auto;
   object-fit: contain;
-  margin-bottom: -2.4rem; /* Menumpuk ke bagian atas bingkai foto */
+  margin-bottom: -2.5rem;
   opacity: 0;
   transform: translateY(-20px) translateZ(60px) rotate(0deg);
   transition: opacity 0.8s ease, transform 0.8s ease;
@@ -129,7 +129,7 @@
 /* --- ORNAMEN BAWAH --- */
 .welcome-ornament.bottom {
   position: relative;
-  z-index: 10;
+  z-index: 15;
   width: 100%;
   max-width: 400px;
   height: auto;
@@ -174,7 +174,7 @@
 /* BINGKAI FOTO & URUTAN TEKS DI BAWAH FOTO           */
 /* =================================================_ */
 
-/* 1. Foto di lapisan bawah (z-index lebih rendah dari ornamen atas) */
+/* 1. Foto di lapisan bawah (di bawah ornamen atas) */
 .welcome figure {
   order: 1;
   position: relative;
@@ -187,7 +187,7 @@
   width: clamp(14.5rem, 68vw, 19rem);
 }
 
-/* Bingkai mengikuti ukuran & bentuk foto */
+/* Bingkai mengikuti bentuk & ukuran foto (atas sedikit membulat, bawah melengkung U) */
 .welcome figure img {
   width: 100%;
   aspect-ratio: 3 / 3.85;
@@ -214,19 +214,24 @@
   line-height: 1.15;
 }
 
-/* Nama pasangan ("Aditya & Diva") berada di bawah "The Wedding Of" */
+/* Nama pasangan di dalam figcaption berada di bawah "The Wedding Of" */
 .welcome figure figcaption {
   order: 3;
   font-size: 2.3rem;
   font-family: var(--sacramento);
   font-weight: 700;
   color: #0f172a;
-  margin-top: 0.1rem;
+  margin-top: 0.15rem;
   line-height: 1.2;
   text-shadow: 0 1px 5px rgba(255, 255, 255, 0.85);
 }
 
-/* Jika di HTML nama pasangan berada di dalam <p> atau elemen lain, pastikan tetap di bawah h2 */
+/* Jika JS menyisipkan elemen teks tambahan di dalam figure, ikutkan ke bawah foto */
+.welcome figure > :not(img) {
+  order: 3;
+}
+
+/* Teks tamu / keterangan */
 .welcome p {
   order: 4;
   margin: 0.25rem 0;
@@ -243,8 +248,12 @@
 }
 
 /* --- TOMBOL BUKA UNDANGAN --- */
+.welcome-info > div,
 .welcome button {
   order: 5;
+}
+
+.welcome button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -283,7 +292,7 @@
 
   .welcome-ornament.top {
     max-width: 320px;
-    margin-bottom: -1.9rem;
+    margin-bottom: -2rem;
   }
 
   .welcome-ornament.bottom {
@@ -329,7 +338,7 @@
 
 @media (max-height: 700px) {
   .welcome-ornament.top {
-    margin-bottom: -1.5rem;
+    margin-bottom: -1.6rem;
   }
 
   .welcome figure {
