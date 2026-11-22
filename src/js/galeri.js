@@ -1,464 +1,294 @@
 import { data } from "../assets/data/data.js";
-import {
-    compressImageToStandard,
-    fetchRemoteLivePhotos,
-    getLocalLivePhotos,
-    saveLocalLivePhoto,
-    uploadLivePhotoToDriveAndSheet
-} from "../services/photoService.js";
-import { getCurrentDateTime } from "../utils/helper.js";
+import { galleryService } from "../services/galleryService.js";
 
 export const galeri = () => {
     const galeriElement = document.querySelector('.galeri');
-    if (!galeriElement) return;
+    const container = galeriElement.querySelector('.container');
+    const showAllContainer = galeriElement.querySelector('.galeri-modal-all');
 
-    const showAllContainer = galeriElement.querySelector('div:nth-of-type(2)');
-    const [_, figureElement, paginationElement, prevButton, nextButton, actionsWrapper] = galeriElement.children[0].children;
-    const showAllButton = actionsWrapper ? actionsWrapper.querySelector('button[aria-label="Lihat semua foto"]') : null;
-    const openCameraButton = document.getElementById('open-live-camera-btn');
+    const figureElement = container.querySelector('figure');
+    const paginationElement = container.querySelector('ul');
+    const prevButton = container.querySelector('button[aria-label="button prev galeri"]');
+    const nextButton = container.querySelector('button[aria-label="button next galeri"]');
+    const openCameraBtn = document.getElementById('open-live-camera-btn');
+    const showAllButton = document.getElementById('show-all-photos-btn');
 
-    const [__, showAllBox, closeButton] = showAllContainer.children;
+    const showAllBox = showAllContainer.querySelector('div');
+    const closeButton = showAllContainer.querySelector('button[aria-label="close button"]');
 
-    // Elemen Modal Live Photo Sharing
-    const modal = document.getElementById('live-photo-modal');
-    const closeModalBtn = document.getElementById('close-live-photo-modal');
-    const btnCamRear = document.getElementById('btn-cam-rear');
-    const btnCamFront = document.getElementById('btn-cam-front');
-    const videoEl = document.getElementById('live-camera-video');
-    const previewEl = document.getElementById('live-camera-preview');
-    const canvasEl = document.getElementById('live-camera-canvas');
-    const statusEl = document.getElementById('live-camera-status');
-    const fallbackInput = document.getElementById('fallback-camera-input');
-    const btnCapture = document.getElementById('btn-capture-photo');
-    const btnRetake = document.getElementById('btn-retake-photo');
-    const uploadForm = document.getElementById('live-photo-upload-form');
-    const senderInput = document.getElementById('live-photo-sender');
-    const captionInput = document.getElementById('live-photo-caption');
-    const submitPhotoBtn = document.getElementById('btn-submit-live-photo');
+    const cameraModal = document.getElementById('live-camera-modal');
+    const closeCameraBtn = document.getElementById('close-camera-modal');
+    const guestNameInput = document.getElementById('camera-guest-name');
+    const videoStreamEl = document.getElementById('live-video-stream');
+    const canvasEl = document.getElementById('live-photo-canvas');
+    const previewImgEl = document.getElementById('live-photo-preview');
+    const loadingOverlay = document.getElementById('camera-loading-overlay');
+    const statusTextEl = document.getElementById('camera-status-text');
 
-    let combinedGallery = [...data.galeri];
-    let currentFacingMode = 'environment'; // 'environment' (belakang) | 'user' (depan)
-    let activeStream = null;
-    let capturedCompressedPhoto = null;
+    const captureControls = document.getElementById('camera-capture-controls');
+    const previewControls = document.getElementById('camera-preview-controls');
+    const switchCameraBtn = document.getElementById('switch-camera-btn');
+    const capturePhotoBtn = document.getElementById('capture-photo-btn');
+    const fallbackCameraInput = document.getElementById('fallback-camera-input');
+    const retakePhotoBtn = document.getElementById('retake-photo-btn');
+    const uploadPhotoBtn = document.getElementById('upload-photo-btn');
 
-    const rebuildGalleryItems = (remotePhotos = []) => {
-        const localPhotos = getLocalLivePhotos();
-        const mergedMap = new Map();
+    let galleryItems = [...data.galeri];
+    let currentIndex = 0;
+    let autoPlayTimer = null;
 
-        // Gabungkan foto remote & foto lokal terbaru di bagian depan galeri agar langsung terlihat tamu
-        [...remotePhotos, ...localPhotos].forEach((item) => {
-            if (item && item.image && !mergedMap.has(item.image)) {
-                mergedMap.set(item.image, {
-                    id: item.id || `live-${Math.random().toString(36).slice(2, 8)}`,
-                    image: item.image,
-                    sender: item.sender || 'Tamu Undangan',
-                    caption: item.caption || '',
-                    isLive: true
-                });
-            }
-        });
+    let currentStream = null;
+    let facingMode = 'environment';
+    let capturedPngDataUrl = null;
 
-        const baseItems = data.galeri.map((item) => ({
-            ...item,
-            isLive: false
-        }));
+    const urlParams = new URLSearchParams(window.location.search);
+    const toParam = urlParams.get('to');
+    if (toParam && guestNameInput) {
+        guestNameInput.value = toParam;
+    }
 
-        combinedGallery = [...Array.from(mergedMap.values()), ...baseItems];
+    const escapeHtml = (str) => {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
     };
 
-    const renderPagination = (activeId) => {
+    const renderCarousel = () => {
+        if (galleryItems.length === 0) return;
+        if (currentIndex >= galleryItems.length) currentIndex = 0;
+        if (currentIndex < 0) currentIndex = galleryItems.length - 1;
+
+        const currentItem = galleryItems[currentIndex];
+        const captionHtml = currentItem.guestName
+            ? `<figcaption class="galeri-caption"><i class='bx bxs-camera'></i> Foto oleh: <strong>${escapeHtml(currentItem.guestName)}</strong></figcaption>`
+            : '';
+
+        figureElement.innerHTML = `
+            <img src="${currentItem.image}" alt="galeri image" id="${currentItem.id}" loading="lazy">
+            ${captionHtml}
+        `;
+
         paginationElement.innerHTML = '';
-        combinedGallery.forEach((item, index) => {
-            const isActive = String(item.id) === String(activeId) || (index === 0 && !activeId);
+        galleryItems.forEach((item, idx) => {
             const li = document.createElement('li');
-            li.dataset.id = String(item.id);
-            if (isActive) li.classList.add('active');
+            li.dataset.index = idx;
+            if (idx === currentIndex) li.classList.add('active');
             li.addEventListener('click', () => {
-                updateNavigationButtons(item.id);
-                updateGalleryImage(item.id);
+                currentIndex = idx;
+                renderCarousel();
+                resetAutoPlay();
             });
             paginationElement.appendChild(li);
         });
     };
 
-    const updateNavigationButtons = (id) => {
-        nextButton.dataset.id = String(id);
-        prevButton.dataset.id = String(id);
+    const nextSlide = () => {
+        currentIndex = (currentIndex + 1) % galleryItems.length;
+        renderCarousel();
     };
 
-    const updateGalleryImage = (id) => {
-        if (!combinedGallery.length) return;
-        const selectedImage = combinedGallery.find((item) => String(item.id) === String(id)) || combinedGallery[0];
-        const badgeHtml = selectedImage.isLive
-            ? `<span class="live-photo-badge"><i class="bx bxs-camera"></i> Live dari ${escapeHtml(selectedImage.sender || 'Tamu')}</span>`
-            : '';
-
-        figureElement.innerHTML = `
-            <img src="${selectedImage.image}" alt="galeri image" id="galeri-img-${selectedImage.id}">
-            ${badgeHtml}
-        `;
-        updateNavigationButtons(selectedImage.id);
-
-        paginationElement.querySelectorAll('li').forEach((li) => {
-            li.classList.toggle('active', li.dataset.id === String(selectedImage.id));
-        });
+    const prevSlide = () => {
+        currentIndex = (currentIndex - 1 + galleryItems.length) % galleryItems.length;
+        renderCarousel();
     };
 
-    const refreshGalleryView = (keepCurrentId = null) => {
-        const targetItem =
-            (keepCurrentId && combinedGallery.find((item) => String(item.id) === String(keepCurrentId))) ||
-            combinedGallery[0];
-        if (!targetItem) return;
-        renderPagination(targetItem.id);
-        updateGalleryImage(targetItem.id);
-    };
-
-    const autoPlayGallery = () => {
-        if (!combinedGallery.length || modal?.classList.contains('active')) return;
-        const currentIndex = combinedGallery.findIndex((item) => String(item.id) === String(nextButton.dataset.id));
-        const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % combinedGallery.length : 0;
-        const nextItem = combinedGallery[nextIndex];
-        updateNavigationButtons(nextItem.id);
-        updateGalleryImage(nextItem.id);
+    const resetAutoPlay = () => {
+        if (autoPlayTimer) clearInterval(autoPlayTimer);
+        autoPlayTimer = setInterval(nextSlide, 3500);
     };
 
     nextButton.addEventListener('click', () => {
-        if (!combinedGallery.length) return;
-        const currentIndex = combinedGallery.findIndex((item) => String(item.id) === String(nextButton.dataset.id));
-        const nextIndex = currentIndex < combinedGallery.length - 1 ? currentIndex + 1 : 0;
-        const nextItem = combinedGallery[nextIndex];
-        updateNavigationButtons(nextItem.id);
-        updateGalleryImage(nextItem.id);
+        nextSlide();
+        resetAutoPlay();
     });
 
     prevButton.addEventListener('click', () => {
-        if (!combinedGallery.length) return;
-        const currentIndex = combinedGallery.findIndex((item) => String(item.id) === String(prevButton.dataset.id));
-        const prevIndex = currentIndex > 0 ? currentIndex - 1 : combinedGallery.length - 1;
-        const prevItem = combinedGallery[prevIndex];
-        updateNavigationButtons(prevItem.id);
-        updateGalleryImage(prevItem.id);
+        prevSlide();
+        resetAutoPlay();
     });
 
-    if (showAllButton) {
-        showAllButton.addEventListener('click', () => {
-            showAllBox.innerHTML = combinedGallery
-                .map((item) => {
-                    const captionText = item.isLive
-                        ? `<div class="grid-photo-caption"><i class="bx bxs-camera"></i> ${escapeHtml(item.sender)}${item.caption ? ` — ${escapeHtml(item.caption)}` : ''}</div>`
-                        : '';
-                    return `
-                        <div class="grid-photo-item">
-                            <img src="${item.image}" alt="image galeri" loading="lazy">
-                            ${captionText}
-                        </div>
-                    `;
-                })
-                .join('');
-            showAllContainer.classList.add('active');
-        });
-    }
+    showAllButton.addEventListener('click', () => {
+        showAllBox.innerHTML = galleryItems.map(item => `
+            <div class="galeri-grid-item">
+                <img src="${item.image}" alt="image galeri" loading="lazy">
+                ${item.guestName ? `<span class="grid-guest-badge"><i class='bx bxs-camera'></i> ${escapeHtml(item.guestName)}</span>` : ''}
+            </div>
+        `).join('');
+        showAllContainer.classList.add('active');
+    });
 
     closeButton.addEventListener('click', () => {
         showAllBox.innerHTML = '';
         showAllContainer.classList.remove('active');
     });
 
-    // --- LOGIKA LIVE PHOTO SHARING (KAMERA DEPAN / BELAKANG) ---
+    const loadRemotePhotos = async () => {
+        const remotePhotos = await galleryService.getPhotos();
+        if (remotePhotos && remotePhotos.length > 0) {
+            galleryItems = [...remotePhotos, ...data.galeri];
+            currentIndex = 0;
+            renderCarousel();
+        }
+    };
+
     const stopCameraStream = () => {
-        if (activeStream) {
-            activeStream.getTracks().forEach((track) => track.stop());
-            activeStream = null;
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+            currentStream = null;
         }
-        if (videoEl) {
-            videoEl.srcObject = null;
-        }
+        videoStreamEl.srcObject = null;
     };
 
-    const setCameraSwitchUI = (facingMode) => {
-        currentFacingMode = facingMode;
-        if (btnCamRear) btnCamRear.classList.toggle('active', facingMode === 'environment');
-        if (btnCamFront) btnCamFront.classList.toggle('active', facingMode === 'user');
-    };
-
-    const resetCaptureState = () => {
-        capturedCompressedPhoto = null;
-        if (submitPhotoBtn) submitPhotoBtn.disabled = true;
-        if (btnRetake) btnRetake.style.display = 'none';
-        if (previewEl) {
-            previewEl.style.display = 'none';
-            previewEl.src = '';
-        }
-        if (videoEl) {
-            videoEl.style.display = 'block';
-        }
-    };
-
-    const startCamera = async (facingMode = currentFacingMode) => {
-        setCameraSwitchUI(facingMode);
-        resetCaptureState();
-
-        if (statusEl) {
-            statusEl.style.display = 'flex';
-            statusEl.textContent = facingMode === 'user'
-                ? 'Membuka kamera depan...'
-                : 'Membuka kamera belakang...';
-        }
-
+    const startCameraStream = async () => {
         stopCameraStream();
+        capturedPngDataUrl = null;
+        previewImgEl.style.display = 'none';
+        videoStreamEl.style.display = 'block';
+        captureControls.style.display = 'flex';
+        previewControls.style.display = 'none';
+        loadingOverlay.style.display = 'none';
 
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            if (statusEl) {
-                statusEl.textContent = 'Browser tidak mendukung kamera langsung. Klik "Ambil Foto" untuk membuka kamera HP.';
-            }
-            return;
-        }
+        videoStreamEl.style.transform = facingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
 
         try {
             const constraints = {
                 video: {
                     facingMode: { ideal: facingMode },
-                    width: { ideal: 1280 },
-                    height: { ideal: 1280 }
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
                 },
                 audio: false
             };
-
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            activeStream = stream;
-            if (videoEl) {
-                videoEl.srcObject = stream;
-                await videoEl.play();
-            }
-            if (statusEl) {
-                statusEl.style.display = 'none';
-            }
+            currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+            videoStreamEl.srcObject = currentStream;
         } catch (err) {
-            console.warn('getUserMedia fallback:', err);
-            if (statusEl) {
-                statusEl.textContent = 'Izin kamera langsung belum aktif/ditolak. Anda tetap bisa klik "Ambil Foto" untuk memakai kamera bawaan perangkat.';
-            }
+            console.warn('Akses WebRTC kamera gagal/ditolak:', err);
         }
     };
 
-    const openLivePhotoModal = async () => {
-        if (!modal) return;
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        await startCamera(currentFacingMode);
-    };
-
-    const closeLivePhotoModal = () => {
-        stopCameraStream();
-        resetCaptureState();
-        if (modal) {
-            modal.classList.remove('active');
-        }
-        document.body.style.overflow = '';
-    };
-
-    if (openCameraButton) {
-        openCameraButton.addEventListener('click', openLivePhotoModal);
-    }
-
-    if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', closeLivePhotoModal);
-    }
-
-    if (modal) {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                closeLivePhotoModal();
-            }
-        });
-    }
-
-    if (btnCamRear) {
-        btnCamRear.addEventListener('click', () => startCamera('environment'));
-    }
-
-    if (btnCamFront) {
-        btnCamFront.addEventListener('click', () => startCamera('user'));
-    }
-
-    if (btnCapture) {
-        btnCapture.addEventListener('click', async () => {
-            const hasLiveVideo = activeStream && videoEl && videoEl.readyState >= 2 && videoEl.videoWidth > 0;
-
-            if (!hasLiveVideo) {
-                // Gunakan input file kamera bawaan HP dengan atribut capture sesuai pilihan kamera depan/belakang
-                if (fallbackInput) {
-                    fallbackInput.setAttribute('capture', currentFacingMode === 'user' ? 'user' : 'environment');
-                    fallbackInput.click();
-                }
-                return;
-            }
-
-            canvasEl.width = videoEl.videoWidth;
-            canvasEl.height = videoEl.videoHeight;
-            const ctx = canvasEl.getContext('2d');
-
-            // Mirror visual saat menggunakan kamera depan agar terasa natural bagi tamu
-            if (currentFacingMode === 'user') {
-                ctx.translate(canvasEl.width, 0);
-                ctx.scale(-1, 1);
-            }
-
-            ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-
-            if (statusEl) {
-                statusEl.style.display = 'flex';
-                statusEl.textContent = 'Mengompresi foto ke kualitas standar tajam...';
-            }
-
-            try {
-                const compressed = await compressImageToStandard(canvasEl);
-                capturedCompressedPhoto = compressed;
-                if (previewEl) {
-                    previewEl.src = compressed.dataUrl;
-                    previewEl.style.display = 'block';
-                }
-                if (videoEl) {
-                    videoEl.style.display = 'none';
-                }
-                if (btnRetake) {
-                    btnRetake.style.display = 'inline-flex';
-                }
-                if (submitPhotoBtn) {
-                    submitPhotoBtn.disabled = false;
-                }
-                if (statusEl) {
-                    statusEl.style.display = 'none';
-                }
-                stopCameraStream();
-            } catch (error) {
-                if (statusEl) {
-                    statusEl.style.display = 'flex';
-                    statusEl.textContent = `Gagal memproses foto: ${error.message}`;
-                }
-            }
-        });
-    }
-
-    if (fallbackInput) {
-        fallbackInput.addEventListener('change', async (e) => {
-            const file = e.target.files && e.target.files[0];
-            if (!file) return;
-
-            if (statusEl) {
-                statusEl.style.display = 'flex';
-                statusEl.textContent = 'Mengompresi foto...';
-            }
-
-            try {
-                const compressed = await compressImageToStandard(file);
-                capturedCompressedPhoto = compressed;
-                if (previewEl) {
-                    previewEl.src = compressed.dataUrl;
-                    previewEl.style.display = 'block';
-                }
-                if (videoEl) {
-                    videoEl.style.display = 'none';
-                }
-                if (btnRetake) {
-                    btnRetake.style.display = 'inline-flex';
-                }
-                if (submitPhotoBtn) {
-                    submitPhotoBtn.disabled = false;
-                }
-                if (statusEl) {
-                    statusEl.style.display = 'none';
-                }
-            } catch (error) {
-                if (statusEl) {
-                    statusEl.style.display = 'flex';
-                    statusEl.textContent = `Gagal memproses foto: ${error.message}`;
-                }
-            } finally {
-                fallbackInput.value = '';
-            }
-        });
-    }
-
-    if (btnRetake) {
-        btnRetake.addEventListener('click', async () => {
-            await startCamera(currentFacingMode);
-        });
-    }
-
-    if (uploadForm) {
-        uploadForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!capturedCompressedPhoto) return;
-
-            const senderName = (senderInput?.value || 'Tamu Undangan').trim();
-            const captionText = (captionInput?.value || '').trim();
-            const photoId = `live-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
-            const timestamp = getCurrentDateTime();
-            const safeSlug = senderName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'tamu';
-            const fileName = `wedding-${safeSlug}-${Date.now()}.jpg`;
-
-            if (submitPhotoBtn) {
-                submitPhotoBtn.disabled = true;
-                submitPhotoBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Mengirim ke Drive & Galeri...';
-            }
-
-            const newPhotoItem = {
-                id: photoId,
-                image: capturedCompressedPhoto.dataUrl,
-                sender: senderName,
-                caption: captionText,
-                cameraMode: currentFacingMode === 'user' ? 'Kamera Depan' : 'Kamera Belakang',
-                createdAt: timestamp,
-                isLive: true
-            };
-
-            // Simpan ke cache lokal agar langsung tampil di galeri undangan
-            saveLocalLivePhoto(newPhotoItem);
-
-            // Kirim ke Google Drive & Google Sheets lewat Apps Script
-            await uploadLivePhotoToDriveAndSheet({
-                id: photoId,
-                sender: senderName,
-                caption: captionText,
-                cameraMode: newPhotoItem.cameraMode,
-                createdAt: timestamp,
-                base64: capturedCompressedPhoto.base64,
-                mimeType: capturedCompressedPhoto.mimeType,
-                fileName
-            });
-
-            rebuildGalleryItems();
-            refreshGalleryView(photoId);
-
-            if (uploadForm) uploadForm.reset();
-            if (submitPhotoBtn) {
-                submitPhotoBtn.innerHTML = '<i class="bx bx-cloud-upload"></i> Simpan ke Galeri & Drive';
-            }
-
-            closeLivePhotoModal();
-        });
-    }
-
-    // Inisialisasi awal & muat foto remote dari Google Drive/Sheets bila tersedia
-    rebuildGalleryItems();
-    refreshGalleryView();
-    setInterval(autoPlayGallery, 3000);
-
-    fetchRemoteLivePhotos().then((remotePhotos) => {
-        if (remotePhotos && remotePhotos.length > 0) {
-            const currentId = nextButton.dataset.id;
-            rebuildGalleryItems(remotePhotos);
-            refreshGalleryView(currentId);
-        }
+    openCameraBtn.addEventListener('click', () => {
+        cameraModal.classList.add('active');
+        cameraModal.setAttribute('aria-hidden', 'false');
+        startCameraStream();
     });
-};
 
-function escapeHtml(str = '') {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
+    closeCameraBtn.addEventListener('click', () => {
+        stopCameraStream();
+        cameraModal.classList.remove('active');
+        cameraModal.setAttribute('aria-hidden', 'true');
+    });
+
+    switchCameraBtn.addEventListener('click', () => {
+        facingMode = facingMode === 'environment' ? 'user' : 'environment';
+        startCameraStream();
+    });
+
+    capturePhotoBtn.addEventListener('click', () => {
+        if (!currentStream) return;
+
+        const videoWidth = videoStreamEl.videoWidth || 1280;
+        const videoHeight = videoStreamEl.videoHeight || 720;
+
+        canvasEl.width = videoWidth;
+        canvasEl.height = videoHeight;
+
+        const ctx = canvasEl.getContext('2d');
+        if (facingMode === 'user') {
+            ctx.translate(videoWidth, 0);
+            ctx.scale(-1, 1);
+        }
+        ctx.drawImage(videoStreamEl, 0, 0, videoWidth, videoHeight);
+
+        capturedPngDataUrl = canvasEl.toDataURL('image/png');
+
+        previewImgEl.src = capturedPngDataUrl;
+        videoStreamEl.style.display = 'none';
+        previewImgEl.style.display = 'block';
+        captureControls.style.display = 'none';
+        previewControls.style.display = 'flex';
+
+        stopCameraStream();
+    });
+
+    fallbackCameraInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const maxDim = 1920;
+                let w = img.width;
+                let h = img.height;
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) {
+                        h = Math.round((h * maxDim) / w);
+                        w = maxDim;
+                    } else {
+                        w = Math.round((w * maxDim) / h);
+                        h = maxDim;
+                    }
+                }
+                canvasEl.width = w;
+                canvasEl.height = h;
+                const ctx = canvasEl.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+
+                capturedPngDataUrl = canvasEl.toDataURL('image/png');
+                previewImgEl.src = capturedPngDataUrl;
+                videoStreamEl.style.display = 'none';
+                previewImgEl.style.display = 'block';
+                captureControls.style.display = 'none';
+                previewControls.style.display = 'flex';
+                stopCameraStream();
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    retakePhotoBtn.addEventListener('click', () => {
+        fallbackCameraInput.value = '';
+        startCameraStream();
+    });
+
+    uploadPhotoBtn.addEventListener('click', async () => {
+        if (!capturedPngDataUrl) return;
+
+        const guestName = guestNameInput.value.trim() || 'Tamu Undangan';
+        loadingOverlay.style.display = 'flex';
+        statusTextEl.textContent = 'Menyimpan foto PNG ke Google Drive...';
+        uploadPhotoBtn.disabled = true;
+        retakePhotoBtn.disabled = true;
+
+        const response = await galleryService.uploadPhoto({
+            guestName: guestName,
+            imageBase64: capturedPngDataUrl
+        });
+
+        uploadPhotoBtn.disabled = false;
+        retakePhotoBtn.disabled = false;
+        loadingOverlay.style.display = 'none';
+
+        if (response && response.status === 'success' && response.photo) {
+            galleryItems.unshift(response.photo);
+        } else {
+            galleryItems.unshift({
+                id: Date.now(),
+                guestName: guestName,
+                image: capturedPngDataUrl
+            });
+        }
+
+        currentIndex = 0;
+        renderCarousel();
+        resetAutoPlay();
+        cameraModal.classList.remove('active');
+        cameraModal.setAttribute('aria-hidden', 'true');
+    });
+
+    renderCarousel();
+    resetAutoPlay();
+    loadRemotePhotos();
+};
