@@ -32,11 +32,21 @@ export const galleryService = {
                 body: JSON.stringify(payload)
             });
 
+            if (!response.ok) {
+                return {
+                    status: 'error',
+                    message: `HTTP error ${response.status}`
+                };
+            }
+
             const result = await response.json();
             return result;
         } catch (error) {
             console.error('Upload error:', error);
-            return { status: 'error', message: error.message };
+            return {
+                status: 'error',
+                message: error && error.message ? error.message : 'Gagal menghubungi server upload.'
+            };
         }
     }
 };
